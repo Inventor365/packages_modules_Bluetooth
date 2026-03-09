@@ -16,20 +16,17 @@
 
 #define LOG_TAG "bluetooth-a2dp"
 
-#include "a2dp_vendor_lhdcv5_encoder.h"
+#include "stack/include/a2dp_vendor_lhdcv5_encoder.h"
 
 #include <bluetooth/log.h>
 #include <dlfcn.h>
-#include <inttypes.h>
 #include <lhdcv5BT.h>
 #include <stdio.h>
 #include <string.h>
 
-#include "a2dp_vendor.h"
-#include "a2dp_vendor_lhdcv5.h"
 #include "common/time_util.h"
 #include "osi/include/allocator.h"
-#include "osi/include/osi.h"
+#include "stack/include/a2dp_vendor_lhdcv5.h"
 
 using namespace bluetooth;
 
