@@ -19,10 +19,9 @@
 
 #define LOG_TAG "bluetooth-a2dp"
 
-#include "a2dp_sbc_encoder.h"
+#include "stack/include/a2dp_sbc_encoder.h"
 
 #include <bluetooth/log.h>
-#include <com_android_bluetooth_flags.h>
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
@@ -30,16 +29,14 @@
 #include <cinttypes>
 #include <cstdint>
 
-#include "a2dp_api.h"
-#include "a2dp_codec_api.h"
-#include "a2dp_sbc.h"
-#include "a2dp_sbc_constants.h"
-#include "a2dp_sbc_up_sample.h"
-#include "avdt_api.h"
 #include "common/time_util.h"
 #include "embdrv/sbc/encoder/include/sbc_encoder.h"
-#include "internal_include/bt_target.h"
 #include "osi/include/allocator.h"
+#include "stack/include/a2dp_api.h"
+#include "stack/include/a2dp_codec_api.h"
+#include "stack/include/a2dp_sbc.h"
+#include "stack/include/a2dp_sbc_up_sample.h"
+#include "stack/include/avdt_api.h"
 #include "stack/include/bt_hdr.h"
 
 /* Buffer pool */
@@ -51,20 +48,12 @@
 /* High quality quality setting @ 44.1 khz */
 #define A2DP_SBC_DEFAULT_BITRATE 328
 
-/*
- * SBC Dual Channel (SBC HD) 3DH5 bitrates.
- * 600 kbps @ 48 khz, 551.3 kbps @ 44.1 khz.
- * Up to 5 frames for 3DH5.
- */
-#define A2DP_SBC_3DH5_DEFAULT_BITRATE 552
-#define A2DP_SBC_3DH5_48KHZ_BITRATE 601
-
 #define A2DP_SBC_NON_EDR_MAX_RATE 229
 
 #define A2DP_SBC_MAX_PCM_ITER_NUM_PER_TICK 3
 
-#define A2DP_SBC_MAX_HQ_FRAME_SIZE_44_1 165
-#define A2DP_SBC_MAX_HQ_FRAME_SIZE_48 165
+#define A2DP_SBC_MAX_HQ_FRAME_SIZE_44_1 119
+#define A2DP_SBC_MAX_HQ_FRAME_SIZE_48 115
 
 /* Define the bitrate step when trying to match bitpool value */
 #define A2DP_SBC_BITRATE_STEP 5
@@ -116,7 +105,6 @@ typedef struct {
   int16_t pcmBuffer[SBC_MAX_PCM_BUFFER_SIZE];
 
   a2dp_sbc_encoder_stats_t stats;
-  bool hd;
 } tA2DP_SBC_ENCODER_CB;
 
 static tA2DP_SBC_ENCODER_CB a2dp_sbc_encoder_cb;
@@ -176,12 +164,14 @@ static void a2dp_sbc_encoder_update(A2dpCodecConfig* a2dp_codec_config, bool* p_
     return;
   }
   const uint8_t* p_codec_info = codec_info;
-
-  btav_a2dp_codec_config_t codec_config = a2dp_codec_config->getCodecConfig();
-  a2dp_sbc_encoder_cb.hd = codec_config.codec_specific_1 == 0x1337;
-
   min_bitpool = A2DP_GetMinBitpoolSbc(p_codec_info);
   max_bitpool = A2DP_GetMaxBitpoolSbc(p_codec_info);
+
+  if (min_bitpool == -1 || max_bitpool == -1) {
+    log::error("Cannot update the codec encoder for {}: invalid bitpool, min={} max={}",
+               a2dp_codec_config->name(), min_bitpool, max_bitpool);
+    return;
+  }
 
   // The feeding parameters
   tA2DP_FEEDING_PARAMS* p_feeding_params = &a2dp_sbc_encoder_cb.feeding_params;
@@ -409,9 +399,7 @@ static void a2dp_sbc_get_num_frame_iteration(uint8_t* num_of_iterations, uint8_t
     a2dp_sbc_encoder_cb.stats.media_read_total_dropped_frames += delta;
 
     projected_nof = MAX_PCM_FRAME_NUM_PER_TICK;
-    if (com_android_bluetooth_flags_a2dp_sbc_underflow_recovery()) {
-      a2dp_sbc_encoder_cb.feeding_state.counter = projected_nof * pcm_bytes_per_frame;
-    }
+    a2dp_sbc_encoder_cb.feeding_state.counter = projected_nof * pcm_bytes_per_frame;
   }
 
   log::verbose("frames for available PCM data {}", projected_nof);
@@ -484,12 +472,9 @@ static void a2dp_sbc_encode_frames(uint8_t nb_frame) {
     a2dp_sbc_encoder_cb.stats.media_read_total_expected_packets++;
 
     do {
-      /* Fill allocated buffer with 0 when residue data is not existing*/
-      if (a2dp_sbc_encoder_cb.feeding_state.aa_feed_residue == 0) {
-        memset(a2dp_sbc_encoder_cb.pcmBuffer, 0,
+      /* Fill allocated buffer with 0 */
+      memset(a2dp_sbc_encoder_cb.pcmBuffer, 0,
              blocm_x_subband * p_encoder_params->s16NumOfChannels);
-      }
-
       //
       // Read the PCM data and encode it. If necessary, upsample the data.
       //
@@ -770,16 +755,6 @@ static uint8_t calculate_max_frames_per_packet(void) {
 
 static uint16_t a2dp_sbc_source_rate(bool is_peer_edr) {
   uint16_t rate = A2DP_SBC_DEFAULT_BITRATE;
-
-  /* check if we're SBC HD */
-  if (a2dp_sbc_encoder_cb.hd &&
-      a2dp_sbc_encoder_cb.peer_params.peer_supports_3mbps &&
-      a2dp_sbc_encoder_cb.TxAaMtuSize >= MIN_3MBPS_AVDTP_SAFE_MTU) {
-    rate = A2DP_SBC_3DH5_DEFAULT_BITRATE;
-    if (a2dp_sbc_encoder_cb.sbc_encoder_params.s16SamplingFreq == SBC_sf48000) {
-      rate = A2DP_SBC_3DH5_48KHZ_BITRATE;
-    }
-  }
 
   /* restrict bitrate if a2dp link is non-edr */
   if (!is_peer_edr) {
