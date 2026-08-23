@@ -1420,10 +1420,14 @@ tA2DP_STATUS A2dpCodecConfigLhdcV5Base::setCodecConfig(const uint8_t* p_peer_cod
   btav_a2dp_codec_config_t saved_codec_selectable_capability = codec_selectable_capability_;
   btav_a2dp_codec_config_t saved_codec_user_config = codec_user_config_;
   btav_a2dp_codec_config_t saved_codec_audio_config = codec_audio_config_;
-  bluetooth::a2dp::MediaCodecCapabilities saved_ota_codec_config = ota_codec_config_;
-  bluetooth::a2dp::MediaCodecCapabilities saved_ota_codec_peer_capability =
-          ota_codec_peer_capability_;
-  bluetooth::a2dp::MediaCodecCapabilities saved_ota_codec_peer_config = ota_codec_peer_config_;
+  uint8_t saved_ota_codec_config[AVDT_CODEC_SIZE];
+  uint8_t saved_ota_codec_peer_capability[AVDT_CODEC_SIZE];
+  uint8_t saved_ota_codec_peer_config[AVDT_CODEC_SIZE];
+  memcpy(saved_ota_codec_config, ota_codec_config_, sizeof(ota_codec_config_));
+  memcpy(saved_ota_codec_peer_capability, ota_codec_peer_capability_,
+         sizeof(ota_codec_peer_capability_));
+  memcpy(saved_ota_codec_peer_config, ota_codec_peer_config_,
+         sizeof(ota_codec_peer_config_));
 
   tA2DP_CODEC_CONFIGS_PACK allCfgPack;
   allCfgPack._codec_config_ = &codec_config_;
@@ -1858,15 +1862,15 @@ tA2DP_STATUS A2dpCodecConfigLhdcV5Base::setCodecConfig(const uint8_t* p_peer_cod
   // result codec config.
   if (is_capability) {
     status = A2DP_BuildInfoLhdcV5(AVDT_MEDIA_TYPE_AUDIO, &sink_info_cie,
-                                  ota_codec_peer_capability_.data());
+                                  ota_codec_peer_capability_);
   } else {
     status = A2DP_BuildInfoLhdcV5(AVDT_MEDIA_TYPE_AUDIO, &sink_info_cie,
-                                  ota_codec_peer_config_.data());
+                                  ota_codec_peer_config_);
   }
   CHECK(status == A2DP_SUCCESS);
 
   status =
-          A2DP_BuildInfoLhdcV5(AVDT_MEDIA_TYPE_AUDIO, &result_config_cie, ota_codec_config_.data());
+          A2DP_BuildInfoLhdcV5(AVDT_MEDIA_TYPE_AUDIO, &result_config_cie, ota_codec_config_);
   CHECK(status == A2DP_SUCCESS);
   return A2DP_SUCCESS;
 
@@ -1876,9 +1880,11 @@ fail:
   codec_selectable_capability_ = saved_codec_selectable_capability;
   codec_user_config_ = saved_codec_user_config;
   codec_audio_config_ = saved_codec_audio_config;
-  ota_codec_config_ = saved_ota_codec_config;
-  ota_codec_peer_capability_ = saved_ota_codec_peer_capability;
-  ota_codec_peer_config_ = saved_ota_codec_peer_config;
+  memcpy(ota_codec_config_, saved_ota_codec_config, sizeof(ota_codec_config_));
+  memcpy(ota_codec_peer_capability_, saved_ota_codec_peer_capability,
+         sizeof(ota_codec_peer_capability_));
+  memcpy(ota_codec_peer_config_, saved_ota_codec_peer_config,
+         sizeof(ota_codec_peer_config_));
   return status;
 }
 
@@ -1893,8 +1899,9 @@ bool A2dpCodecConfigLhdcV5Base::setPeerCodecCapabilities(const uint8_t* p_peer_c
 
   // Save the internal state
   btav_a2dp_codec_config_t saved_codec_selectable_capability = codec_selectable_capability_;
-  bluetooth::a2dp::MediaCodecCapabilities saved_ota_codec_peer_capability =
-          ota_codec_peer_capability_;
+  uint8_t saved_ota_codec_peer_capability[AVDT_CODEC_SIZE];
+  memcpy(saved_ota_codec_peer_capability, ota_codec_peer_capability_,
+         sizeof(ota_codec_peer_capability_));
 
   if (p_peer_codec_capabilities == nullptr) {
     log::error("nullptr input");
@@ -1938,14 +1945,15 @@ bool A2dpCodecConfigLhdcV5Base::setPeerCodecCapabilities(const uint8_t* p_peer_c
   codec_selectable_capability_.channel_mode = BTAV_A2DP_CODEC_CHANNEL_MODE_STEREO;
 
   status = A2DP_BuildInfoLhdcV5(AVDT_MEDIA_TYPE_AUDIO, &peer_info_cie,
-                                ota_codec_peer_capability_.data());
+                                ota_codec_peer_capability_);
   CHECK(status == A2DP_SUCCESS);
   return true;
 
 fail:
   // Restore the internal state
   codec_selectable_capability_ = saved_codec_selectable_capability;
-  ota_codec_peer_capability_ = saved_ota_codec_peer_capability;
+  memcpy(ota_codec_peer_capability_, saved_ota_codec_peer_capability,
+         sizeof(ota_codec_peer_capability_));
   return false;
 }
 
