@@ -64,20 +64,6 @@ public final class BluetoothCodecType implements Parcelable {
     @FlaggedApi(Flags.FLAG_A2DP_LHDC_API)
     public static final long CODEC_ID_LHDCV5 = 0x4c35_053a_ffL;
 
-    /** @hide */
-    @Hide
-    @Retention(RetentionPolicy.SOURCE)
-    @LongDef({
-        CODEC_ID_SBC,
-        CODEC_ID_AAC,
-        CODEC_ID_APTX,
-        CODEC_ID_APTX_HD,
-        CODEC_ID_LDAC,
-        CODEC_ID_SONY_LDAC,
-        CODEC_ID_OPUS,
-        CODEC_ID_LHDCV5,
-    })
-    public @interface CodecId {}
     /**
      * Create the bluetooth codec type from the static codec type index.
      *
@@ -210,58 +196,6 @@ public final class BluetoothCodecType implements Parcelable {
         return new BluetoothCodecType(codecType, codecId);
     }
 
-    /**
-     * @return 0
-     * @hide
-     */
-    /**
-     * Create the bluetooth codec type from the codec ID.
-     *
-     * @param codecId the codec ID
-     * @return the codec type if valid
-     */
-    @Hide
-    @FlaggedApi(Flags.FLAG_A2DP_CREATE_CODEC_TYPE_FROM_ID_API)
-    @SuppressWarnings("FlaggedApi") // Due to deprecated CODEC_ID_LDAC
-    @SystemApi
-    public static @Nullable BluetoothCodecType createFromId(@CodecId long codecId) {
-        if (codecId == CODEC_ID_SBC) {
-            return new BluetoothCodecType(
-                    BluetoothCodecConfig.SOURCE_CODEC_TYPE_SBC, CODEC_ID_SBC, "SBC");
-        }
-        if (codecId == CODEC_ID_AAC) {
-            return new BluetoothCodecType(
-                    BluetoothCodecConfig.SOURCE_CODEC_TYPE_AAC, CODEC_ID_AAC, "AAC");
-        }
-        if (codecId == CODEC_ID_APTX) {
-            return new BluetoothCodecType(
-                    BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX, CODEC_ID_APTX, "AptX");
-        }
-        if (codecId == CODEC_ID_APTX_HD) {
-            return new BluetoothCodecType(
-                    BluetoothCodecConfig.SOURCE_CODEC_TYPE_APTX_HD, CODEC_ID_APTX_HD, "AptX HD");
-        }
-        if (Flags.a2dpLdacApi()) {
-            if (codecId == CODEC_ID_SONY_LDAC) {
-                return new BluetoothCodecType(
-                        BluetoothCodecConfig.SOURCE_CODEC_TYPE_LDAC, CODEC_ID_SONY_LDAC, "LDAC");
-            }
-        } else if (codecId == CODEC_ID_LDAC) {
-            return new BluetoothCodecType(
-                    BluetoothCodecConfig.SOURCE_CODEC_TYPE_LDAC, CODEC_ID_LDAC, "LDAC");
-        }
-        if (codecId == CODEC_ID_OPUS) {
-            return new BluetoothCodecType(
-                    BluetoothCodecConfig.SOURCE_CODEC_TYPE_OPUS, CODEC_ID_OPUS, "Opus");
-        }
-        if (Flags.a2dpLhdcApi()) {
-            if (codecId == CODEC_ID_LHDCV5) {
-                return new BluetoothCodecType(
-                        BluetoothCodecConfig.SOURCE_CODEC_TYPE_INVALID, CODEC_ID_LHDCV5, "LHDCV5");
-            }
-        }
-        return null;
-    }
     @Override
     public int describeContents() {
         return 0;
