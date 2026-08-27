@@ -310,7 +310,7 @@ class A2dpCodecConfig {
         value =
                 SystemProperties.getInt(
                         "bluetooth.a2dp.source.lhdcv5_priority.config",
-                        Build.VERSION.SDK_INT >= 37
+                        Build.VERSION.SDK_INT >= 35
                                 ? 5002
                                 : BluetoothCodecConfig.CODEC_PRIORITY_DISABLED);
 
