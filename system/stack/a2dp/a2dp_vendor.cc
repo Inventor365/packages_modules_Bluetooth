@@ -207,6 +207,11 @@ const char* A2DP_VendorCodecName(const uint8_t* p_codec_info) {
     return A2DP_VendorCodecNameOpus(p_codec_info);
   }
 
+  // Check for LHDCv5
+  if (vendor_id == A2DP_LHDC_VENDOR_ID && codec_id == A2DP_LHDCV5_CODEC_ID) {
+    return "LHDCv5";
+  }
+
   // Add checks based on <vendor_id, codec_id>
 
   return "UNKNOWN VENDOR CODEC";
